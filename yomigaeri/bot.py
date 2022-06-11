@@ -6,11 +6,19 @@ from yomigaeri.command import Command
 
 
 class Bot(object):
-    def __init__(self, prefix: str, token: str) -> None:
-        """Represents the Discord bot.
+    """Represents the Discord Bot.
 
-        :param prefix: the prefix that triggers commands.
-        :param token: the bots Discord token.
+    Attributes:
+        prefix (str): the prefix that will trigger the bot to activate a command.
+        token (str): the bots Discord token.
+        commands (list[Command]): the list of bot commands.
+    """
+    def __init__(self, prefix: str, token: str) -> None:
+        """Initializes the Bot object
+
+        Args:
+            prefix (str): the prefix that will trigger the bot to activate a command.
+            token (str): the bots Discord token.
         """
         self.prefix: str = prefix
         self.token: str = token
@@ -30,12 +38,20 @@ class Bot(object):
     ]:
         """Adds a command to the bot.
 
-        :param name: the name of the command.
-        :param description: the description of the command.
+        Args:
+            name (str): the name of the command
+            description (str): the description of the command
 
-        :return: typing.Callable[[typing.Callable[[hikari.Event], typing.Coroutine[typing.Any, typing.Any, None]]],typing.Callable[[hikari.Event], typing.Coroutine[typing.Any, typing.Any, None]],]
+        Returns:
+            typing.Callable[
+                [
+                    typing.Callable[
+                        [hikari.Event], typing.Coroutine[typing.Any, typing.Any, None]
+                    ]
+                ],
+                typing.Callable[[hikari.Event], typing.Coroutine[typing.Any, typing.Any, None]],
+            ]
         """
-
         def _inner(
             callback: typing.Callable[
                 [hikari.Event], typing.Coroutine[typing.Any, typing.Any, None]
@@ -56,10 +72,15 @@ class Bot(object):
     ]:
         """Adds an event listener to the bot.
 
-        :param event: the type of event
-        :return: typing.Callable[[typing.Callable[[typing.Any], typing.Coroutine[typing.Any, typing.Any, None]]],typing.Callable[[typing.Any], typing.Coroutine[typing.Any, typing.Any, None]],
-        """
+        Args:
+            event (type): the type of event.
 
+        Returns:
+            typing.Callable[
+                [typing.Callable[[typing.Any], typing.Coroutine[typing.Any, typing.Any, None]]],
+                typing.Callable[[typing.Any], typing.Coroutine[typing.Any, typing.Any, None]],
+            ]
+        """
         def inner(
             callback: typing.Callable[
                 [typing.Any], typing.Coroutine[typing.Any, typing.Any, None]
