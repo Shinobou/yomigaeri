@@ -15,6 +15,7 @@ class Bot(object):
         token (str): the bots Discord token.
         commands (list[Command]): the list of bot commands.
     """
+
     def __init__(self, prefix: str, token: str) -> None:
         """Initializes the Bot object
 
@@ -31,11 +32,7 @@ class Bot(object):
     def command(
         self, name: str, description: str
     ) -> typing.Callable[
-        [
-            typing.Callable[
-                ..., typing.Coroutine[typing.Any, typing.Any, None]
-            ]
-        ],
+        [typing.Callable[..., typing.Coroutine[typing.Any, typing.Any, None]]],
         typing.Callable[[hikari.Event], typing.Coroutine[typing.Any, typing.Any, None]],
     ]:
         """Adds a command to the bot.
@@ -54,6 +51,7 @@ class Bot(object):
                 typing.Callable[[hikari.Event], typing.Coroutine[typing.Any, typing.Any, None]],
             ]
         """
+
         def _inner(
             callback: typing.Callable[
                 [hikari.Event], typing.Coroutine[typing.Any, typing.Any, None]
@@ -62,8 +60,12 @@ class Bot(object):
             [hikari.Event], typing.Coroutine[typing.Any, typing.Any, None]
         ]:
             signature: inspect.Signature = inspect.signature(callback)
-            parameters: types.MappingProxyType[str, inspect.Parameter] = signature.parameters
-            arguments: list[tuple[str, type]] = [(key, parameters[key].annotation) for key in parameters.keys()]
+            parameters: types.MappingProxyType[
+                str, inspect.Parameter
+            ] = signature.parameters
+            arguments: list[tuple[str, type]] = [
+                (key, parameters[key].annotation) for key in parameters.keys()
+            ]
             arguments.pop(0)
             self.commands.append(Command(name, description, callback, arguments))
             return callback
@@ -87,6 +89,7 @@ class Bot(object):
                 typing.Callable[[typing.Any], typing.Coroutine[typing.Any, typing.Any, None]],
             ]
         """
+
         def inner(
             callback: typing.Callable[
                 [typing.Any], typing.Coroutine[typing.Any, typing.Any, None]
@@ -100,11 +103,15 @@ class Bot(object):
         return inner
 
     @staticmethod
-    def _convert_arguments(arguments: list[str], command_arguments: list[tuple[str, type]]) -> dict[str, typing.Any]:
+    def _convert_arguments(
+        arguments: list[str], command_arguments: list[tuple[str, type]]
+    ) -> dict[str, typing.Any]:
         arguments_dict: dict[str, typing.Any] = {}
 
         for x in range(len(arguments)):
-            arguments_dict[command_arguments[x][0]] = command_arguments[x][1](arguments[x])
+            arguments_dict[command_arguments[x][0]] = command_arguments[x][1](
+                arguments[x]
+            )
 
         return arguments_dict
 
@@ -119,7 +126,10 @@ class Bot(object):
                         arguments.pop(0)
                         if len(arguments) != len(command.arguments):
                             return
-                        await command.callback(event, **self._convert_arguments(arguments, command.arguments))
+                        await command.callback(
+                            event,
+                            **self._convert_arguments(arguments, command.arguments)
+                        )
                     return
 
     def run(self) -> None:
