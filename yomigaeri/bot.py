@@ -1,3 +1,5 @@
+import inspect
+import types
 import typing
 
 import hikari
@@ -31,7 +33,7 @@ class Bot(object):
     ) -> typing.Callable[
         [
             typing.Callable[
-                [hikari.Event], typing.Coroutine[typing.Any, typing.Any, None]
+                ..., typing.Coroutine[typing.Any, typing.Any, None]
             ]
         ],
         typing.Callable[[hikari.Event], typing.Coroutine[typing.Any, typing.Any, None]],
@@ -59,7 +61,11 @@ class Bot(object):
         ) -> typing.Callable[
             [hikari.Event], typing.Coroutine[typing.Any, typing.Any, None]
         ]:
-            self.commands.append(Command(name, description, callback))
+            signature: inspect.Signature = inspect.signature(callback)
+            parameters: types.MappingProxyType[str, inspect.Parameter] = signature.parameters
+            arguments: list[tuple[str, type]] = [(key, parameters[key].annotation) for key in parameters.keys()]
+            arguments.pop(0)
+            self.commands.append(Command(name, description, callback, arguments))
             return callback
 
         return _inner
@@ -93,11 +99,28 @@ class Bot(object):
 
         return inner
 
+    @staticmethod
+    def _convert_arguments(arguments: list[str], command_arguments: list[tuple[str, type]]) -> dict[str, typing.Any]:
+        arguments_dict: dict[str, typing.Any] = {}
+
+        for x in range(len(arguments)):
+            arguments_dict[command_arguments[x][0]] = command_arguments[x][1](arguments[x])
+
+        return arguments_dict
+
     async def _on_message_create_event(self, event: hikari.MessageCreateEvent) -> None:
         for command in self.commands:
             if event.message.content is not None:
                 if event.message.content.startswith(self.prefix + command.name):
-                    await command.callback(event)
+                    if command.arguments is None:
+                        await command.callback(event)
+                    else:
+                        arguments: list[str] = event.message.content.split(" ")
+                        arguments.pop(0)
+                        if len(arguments) != len(command.arguments):
+                            return
+                        await command.callback(event, **self._convert_arguments(arguments, command.arguments))
+                    return
 
     def run(self) -> None:
         """Runs the bot."""
