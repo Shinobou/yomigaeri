@@ -4,6 +4,6 @@ setup(
     name="yomigaeri",
     packages=["yomigaeri"],
     install_requires=[
-        "git+https://github.com/Shinobou/hikari"
+        "yomigaeri @ git+https://github.com/Shinobou/hikari"
     ]
 )
