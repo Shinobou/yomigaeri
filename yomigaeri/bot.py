@@ -5,6 +5,8 @@ import typing
 import hikari
 
 from yomigaeri.command import Command
+from yomigaeri.context import Context
+from yomigaeri.converters import _convert_to_member
 
 
 class Bot(object):
@@ -14,6 +16,7 @@ class Bot(object):
         prefix (str): the prefix that will trigger the bot to activate a command.
         token (str): the bots Discord token.
         commands (list[Command]): the list of bot commands.
+        gateway_bot (hikari.GatewayBot): the gateway bot.
     """
 
     def __init__(self, prefix: str, token: str) -> None:
@@ -26,8 +29,7 @@ class Bot(object):
         self.prefix: str = prefix
         self.token: str = token
         self.commands: list[Command] = []
-
-        self._gateway_bot: hikari.GatewayBot = hikari.GatewayBot(self.token)
+        self.gateway_bot: hikari.GatewayBot = hikari.GatewayBot(self.token)
 
     def command(
         self, name: str, description: str
@@ -97,21 +99,25 @@ class Bot(object):
         ) -> typing.Callable[
             [typing.Any], typing.Coroutine[typing.Any, typing.Any, None]
         ]:
-            self._gateway_bot.event_manager.subscribe(event, callback)
+            self.gateway_bot.event_manager.subscribe(event, callback)
             return callback
 
         return inner
 
-    @staticmethod
-    def _convert_arguments(
-        arguments: list[str], command_arguments: list[tuple[str, type]]
+    async def _convert_arguments(
+        self, event: hikari.MessageCreateEvent, arguments: list[str], command_arguments: list[tuple[str, type]]
     ) -> dict[str, typing.Any]:
         arguments_dict: dict[str, typing.Any] = {}
 
         for x in range(len(arguments)):
-            arguments_dict[command_arguments[x][0]] = command_arguments[x][1](
-                arguments[x]
-            )
+            argument_type: type = command_arguments[x][1]
+            argument: str = arguments[x]
+            if argument_type in (str, int, float):
+                arguments_dict[command_arguments[x][0]] = argument_type(
+                    argument
+                )
+            elif argument_type is hikari.Member:
+                arguments_dict[command_arguments[x][0]] = await _convert_to_member(event, self.gateway_bot, argument)
 
         return arguments_dict
 
@@ -127,14 +133,14 @@ class Bot(object):
                         if len(arguments) != len(command.arguments):
                             return
                         await command.callback(
-                            event,
-                            **self._convert_arguments(arguments, command.arguments)
+                            Context(event, self.gateway_bot),
+                            **await self._convert_arguments(event, arguments, command.arguments)
                         )
                     return
 
     def run(self) -> None:
         """Runs the bot."""
-        self._gateway_bot.event_manager.subscribe(
+        self.gateway_bot.event_manager.subscribe(
             hikari.MessageCreateEvent, self._on_message_create_event
         )
-        self._gateway_bot.run()
+        self.gateway_bot.run()
